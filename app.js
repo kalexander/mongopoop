@@ -37,25 +37,54 @@ app.get('/area/:swlat/:swlng/:nelat/:nelng',function(req,res){
   var cr = [[swlng,swlat],[nelng,swlat],[nelng,nelat],[nelng,swlat],[swlng,swlat]];
   var coll = db.collection('zips');
   coll.find(
-      {
-         geometry: {
-           $geoWithin: {
-             $geometry: {
-               type: "Polygon",
-               coordinates: [ [ [nelng,swlat], [swlng,swlat], [swlng,nelat], [nelng,nelat], [nelng,swlat] ] ]
-             }
-           }
-         }
+    {
+      geometry: {
+        $geoIntersects: {
+          $geometry: {
+            type: "Polygon",
+            coordinates: [ [ [nelng,swlat], [swlng,swlat], [swlng,nelat], [nelng,nelat], [nelng,swlat] ] ]
+          }
+        }
       }
-    ).toArray(function(err, dox){
-      var result = {
-        type: "FeatureCollection"
-      };
-      result.features = dox;
-      console.log(result);
-      console.log(err);
-      res.json(result);
-    });
+    }
+  ).toArray(function(err, dox){
+    var result = {
+      type: "FeatureCollection"
+    };
+    result.features = dox;
+    console.log(result);
+    console.log(err);
+    res.json(result);
+  });
+});
+
+app.get('/circlearea/:lat/:lng/:radius',function(req,res){
+  var lng = parseFloat(req.params.lng);
+  var lat = parseFloat(req.params.lat);
+  var radius = parseFloat(req.params.radius);
+  var coll = db.collection('zips');
+  coll.find(
+      { geometry:
+        {
+          $nearSphere: {
+            $geometry: {
+              type : "Point",
+              coordinates : [ lng, lat ]
+            },
+            $minDistance: 0,
+            $maxDistance: radius
+          }
+        }
+      }
+  ).toArray(function(err, dox){
+    var result = {
+      type: "FeatureCollection"
+    };
+    result.features = dox;
+    console.log(result);
+    console.log(err);
+    res.json(result);
+  });
 });
 
 app.get('/bigarea', function(req,res){

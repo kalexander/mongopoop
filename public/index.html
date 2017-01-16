@@ -41,17 +41,9 @@
           drawingControl: true,
           drawingControlOptions: {
             position: google.maps.ControlPosition.TOP_CENTER,
-            drawingModes: ['marker', 'circle', 'polygon', 'polyline', 'rectangle']
+            drawingModes: ['circle','rectangle']
           },
           markerOptions: {icon: 'https://developers.google.com/maps/documentation/javascript/examples/full/images/beachflag.png'},
-          circleOptions: {
-            fillColor: '#ffff00',
-            fillOpacity: 1,
-            strokeWeight: 5,
-            clickable: false,
-            editable: true,
-            zIndex: 1
-          }
         });
 
         map.data.addListener('mouseover', function(event) {
@@ -61,11 +53,17 @@
         drawingManager.setMap(map);
         google.maps.event.addListener(drawingManager, 'overlaycomplete', function(event) {
           console.log(event.type);
-          if (event.type == 'rectangle') {
+          if (event.type === 'rectangle') {
             //var radius = event.overlay.getRadius();
             var ne = event.overlay.getBounds().getNorthEast();
             var sw = event.overlay.getBounds().getSouthWest();
             map.data.loadGeoJson('/area/'+sw.lat()+"/"+sw.lng()+"/"+ne.lat()+"/"+ne.lng());
+          }
+          if(event.type === 'circle'){
+            var radius = event.overlay.getRadius();
+            var lat = event.overlay.getCenter().lat();
+            var lng = event.overlay.getCenter().lng();
+            map.data.loadGeoJson('/circlearea/'+lat+"/" + lng + "/" +radius);
           }
         });
       }

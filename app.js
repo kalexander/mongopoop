@@ -1,5 +1,8 @@
 var express = require('express');
 var path    = require('path');
+var _       = require('lodash');
+var request = require('superagent');
+var async   = require('async');
 var app = express();
 var MongoClient = require('mongodb').MongoClient
 
@@ -27,6 +30,35 @@ app.get('/70816',function(req,res){
       result.features = dox;
       res.json(result);
     });
+});
+
+app.get('/zipdata/:zip', function(req,res){
+  var zip = req.params.zip;
+  var codes = {
+    713940: 'Fitness Center',
+    54111: 'Offices of Laywers'
+  };
+
+  var retStr = "";
+
+  var getZipData = function(code,cb){
+    var url = 'http://api.census.gov/data/2014/zbp?get=EMP_F,ESTAB_F,EMP,ESTAB,EMPSZES&for=zipcode:'+zip+'&NAICS2012='+code;
+    console.log(url);
+    request
+      .get(url)
+      .set('Accept', 'application/json')
+      .end(function(err, resp){
+        if(err){
+          console.log(err);
+        }
+        retStr = retStr + codes[code] + " : " + (_.isEmpty(resp.body) ? "n/a" : resp.body[1][3]) +"<br/>";
+        cb();
+      });
+  };
+
+  async.eachSeries(_.keysIn(codes),getZipData,function(){
+    res.json({data: retStr});
+  })
 });
 
 app.get('/area/:swlat/:swlng/:nelat/:nelng',function(req,res){

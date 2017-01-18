@@ -4,6 +4,7 @@
     <title>Simple Map</title>
     <meta name="viewport" content="initial-scale=1.0">
     <meta charset="utf-8">
+    <link rel="stylesheet" type="text/css" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" >
     <style>
         /* Always set the map height explicitly to define the size of the div
          * element that contains the map. */
@@ -12,7 +13,7 @@
         }
 
         .right {
-            width: 180px;
+            width: 300px;
             height: 100%;
             float: left;
             background: #0B3D51;
@@ -25,17 +26,64 @@
             padding: 0;
         }
     </style>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.0/jquery.min.js"></script>
 </head>
 <body>
 <div class="right">
     this is a test
+    <form>
+        <div class="form-group">
+            <label for="lat">latitude</label>
+            <input id="lat" class="form-control" >
+        </div>
     <input id="radius" type="text"></input>
     <input id="lat" type="text"></input>
     <input id="lng" type="text"></input>
+    <br/>
+    place <input id="pac-input" type="text"></input>
+    <br/>
+    # circ <input id="numcircles" type="text">
+    <br/>
+    dist <input id="distcirc" type="text">
 </div>
 <div id="map"></div>
 <script>
   var map;
+
+  var lastiw = void(0);
+
+  function doSomething(zip){
+    $.ajax({
+      url: '/zipdata/'+zip,
+      success: function(data){
+        var content = lastiw.getContent();
+        content = content + "<br/>" + data.data;
+        lastiw.setContent(content);
+      }
+    })
+  }
+
+  var generateRadii = function(map, lat,lng) {
+    var metersInMiles = 1609.34;
+    console.log('in genradii')
+    var numCircles = parseInt(document.getElementById('numcircles').value,10);
+    var distcirc = parseInt(document.getElementById('distcirc').value,10);
+    for(var i =1; i<= numCircles; ++i){
+      var cityCircle = new google.maps.Circle({
+        strokeColor: '#d70011',
+        //strokeOpacity: 1,
+        strokeWeight: 2,
+        //fillColor: '#88D7BE',
+        zIndex: -100,
+        fillOpacity: 0,
+        map: map,
+        center: {lat: lat, lng: lng},
+        radius: metersInMiles * i * distcirc
+      });
+      console.log('trying to create circle...')
+    }
+  };
+
   function initMap() {
     map = new google.maps.Map(document.getElementById('map'), {
       center: {lat: 38.0000, lng: -97.000},
@@ -87,10 +135,30 @@
       }],
     });
 
+
+    var options = {
+      typess: ['(cities)'],
+      componentRestrictions: {country: 'us'}
+    };
+      var places = new google.maps.places.Autocomplete(document.getElementById('pac-input'), options);
+      google.maps.event.addListener(places, 'place_changed', function () {
+        var place = places.getPlace();
+        var address = place.formatted_address;
+        var latitude = place.geometry.location.lat();
+        var longitude = place.geometry.location.lng();
+        var mesg = "Address: " + address;
+        mesg += "\nLatitude: " + latitude;
+        mesg += "\nLongitude: " + longitude;
+        generateRadii(map, latitude,longitude);
+      });
+
     map.data.loadGeoJson('/70816');
     map.data.setStyle({
       icon: '//example.com/path/to/image.png',
-      fillColor: 'green'
+      fillColor: 'green',
+      strokeWeight: 3,
+      strokeColor: 'yellow',
+      fillOpacity: 0.25
     });
 
     //map.data.loadGeoJson('/bigarea');
@@ -102,6 +170,7 @@
         drawingModes: ['circle', 'rectangle']
       },
       markerOptions: {icon: 'https://developers.google.com/maps/documentation/javascript/examples/full/images/beachflag.png'},
+      polygonOptions: { strokeWeight: 1, fillOpacity: 1, strokeColor: 'red'}
     });
 
     google.maps.event.addListener(map, 'mousemove', function (event) {
@@ -110,7 +179,6 @@
       document.getElementById("lng").value = event.latLng.lng();
     });
 
-    var lastiw = null;
     var lastm = null;
 
     map.data.addListener('mouseover', function (event) {
@@ -130,7 +198,6 @@
       var marker = new google.maps.Marker({
         position: {lat: lat, lng: lng},
         map: map,
-        title: 'Uluru (Ayers Rock)',
         icon: {
           path: google.maps.SymbolPath.CIRCLE,
           scale: 1,
@@ -141,9 +208,11 @@
       });
       lastm = marker;
       var iw = new google.maps.InfoWindow({
-        content: event.feature.getProperty('GEOID10'),
+        me: this,
+        content: '<a href="javascript:doSomething(' + event.feature.getProperty('GEOID10') + ');">' + event.feature.getProperty('GEOID10') + "</a>" ,
         position: {lat: document.getElementById("lat").value, lng: document.getElementById("lng").value}
       });
+      //iw.setContent('<a href="javascript:doSomething(this,' + event.feature.getProperty('GEOID10') + ');">' + event.feature.getProperty('GEOID10') + "</a>")
       iw.open(map, marker);
       iw.setPosition(new google.maps.LatLng({lat: lat, lng: lng}));
       lastiw = iw;
@@ -168,6 +237,6 @@
     });
   }
 </script>
-<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBRWl9Wm0Mac-eMj-yY4TSFLXesSyKASvM&callback=initMap&libraries=drawing"
+<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBRWl9Wm0Mac-eMj-yY4TSFLXesSyKASvM&callback=initMap&libraries=drawing,places"
         async defer></script>
 </body>

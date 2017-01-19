@@ -66,12 +66,11 @@ app.get('/area/:swlat/:swlng/:nelat/:nelng',function(req,res){
   var swlat = parseFloat(req.params.swlat);
   var nelng = parseFloat(req.params.nelng);
   var nelat = parseFloat(req.params.nelat);
-  var cr = [[swlng,swlat],[nelng,swlat],[nelng,nelat],[nelng,swlat],[swlng,swlat]];
   var coll = db.collection('zips');
   coll.find(
     {
       geometry: {
-        $geoIntersects: {
+        $geoWithin: {
           $geometry: {
             type: "Polygon",
             coordinates: [ [ [nelng,swlat], [swlng,swlat], [swlng,nelat], [nelng,nelat], [nelng,swlat] ] ]
@@ -79,6 +78,25 @@ app.get('/area/:swlat/:swlng/:nelat/:nelng',function(req,res){
         }
       }
     }
+  ).toArray(function(err, dox){
+    var result = {
+      type: "FeatureCollection",
+      features: dox
+    };
+    res.json(result);
+  });
+});
+
+app.get('/plotzips/:zipz',function(req,res){
+  console.log('in plotzips..')
+  var zips = req.params.zipz.split(",");
+  zips = _.map(zips,function(o){
+    return "" + o;
+  });
+  console.log(zips);
+  var coll = db.collection('zips');
+  coll.find(
+    { 'properties.GEOID10' : { $in : zips } }
   ).toArray(function(err, dox){
     var result = {
       type: "FeatureCollection"
@@ -132,15 +150,17 @@ app.get('/bigarea', function(req,res){
            }
          }
       }
-    ).toArray(function(err, dox){
-      var result = {
-        type: "FeatureCollection"
-      };
-      result.features = dox;
-      res.json(result);
-    });
+  ).toArray(function(err, dox){
+    var result = {
+      type: "FeatureCollection",
+      features: dox
+    };
+    console.log(result)
+    res.json(result);
+  });
 });
 
-app.listen(3000, function () {
-  console.log('Example app listening on port 3000!');
+
+app.listen(3011, function () {
+  console.log('Example app listening on port 3011!');
 });

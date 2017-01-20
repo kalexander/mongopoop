@@ -70,7 +70,7 @@ app.get('/area/:swlat/:swlng/:nelat/:nelng',function(req,res){
   coll.find(
     {
       geometry: {
-        $geoWithin: {
+        $geoIntersects: {
           $geometry: {
             type: "Polygon",
             coordinates: [ [ [nelng,swlat], [swlng,swlat], [swlng,nelat], [nelng,nelat], [nelng,swlat] ] ]
